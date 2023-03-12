@@ -1,0 +1,44 @@
+version: '3.1'
+
+services:
+  postgres:
+    container_name: postgres
+    image: postgres:latest
+    ports:
+      - 5432:5432
+    volumes:
+      - pgdata:/var/lib/postgresql/data/
+    environment:
+      - POSTGRES_USER=total
+      - POSTGRES_PASSWORD=platform
+      - POSTGRES_DB=openplatform
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "total", "-d", "openplatform"]
+      interval: 3s
+      timeout: 3s
+      retries: 5
+
+  openplatform:
+    container_name: openplatform
+    image: totalplatform/openplatform:latest
+    volumes:
+      - ##FOLDER_WWW##/databases:/www/databases/
+    environment:
+      - DATABASE=postgresql://total:platform@postgres:5432/openplatform
+      - VIRTUAL_MAX_UPLOAD=##MAXUPLOAD##
+      - VIRTUAL_HOST=##HOST##
+      - VIRTUAL_PORT=8000
+      - LETSENCRYPT_HOST=##HOST##                              # remove for localhost
+      - DISABLE_ACCESS_LOGS=1
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+networks:
+  default:
+    name: proxy
+    external: true
+
+volumes:
+  pgdata:
+    driver: local
